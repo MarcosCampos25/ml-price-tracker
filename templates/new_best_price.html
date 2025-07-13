@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>¡Nuevo mejor precio encontrado!</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+        <h2 style="color: #2e8b57; text-align: center;">🎉 ¡Tenemos buenas noticias!</h2>
+        <p style="font-size: 16px; text-align: center;">Uno de los productos que estás siguiendo bajó de precio y alcanzó su <strong>mejor valor histórico</strong> 🏆</p>
+
+        {% for product in products %}
+        <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            <h3 style="color: #333;">{{ product.title }}</h3>
+            <img src="{{ product.img }}" alt="Imagen del producto" style="max-width: 100%; height: auto; border-radius: 5px; margin-top: 10px;">
+
+            <p style="margin: 10px 0;">
+                <strong>Precio actual:</strong> 
+                <span style="color: #e91e63; font-size: 18px;">${{ "%.2f"|format(product.current_price) }}</span>
+            </p>
+
+            <p style="margin: 5px 0;">
+                <strong>Precio anterior:</strong> 
+                <del>${{ "%.2f"|format(product.last_price) }}</del>
+            </p>
+
+            <p style="margin: 5px 0;">
+                <strong>Mejor precio histórico:</strong> 
+                <span style="color: #4caf50;">${{ "%.2f"|format(product.best_price) }}</span>
+            </p>
+
+            <a href="{{ product.url }}" style="display: inline-block; margin-top: 15px; background-color: #2e8b57; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
+                Ver producto 🔎
+            </a>
+        </div>
+        {% endfor %}
+
+        <p style="margin-top: 40px; font-size: 14px; color: #777; text-align: center;">
+            Este es un mensaje automático de <strong>PriceTracker</strong> 🛒
+        </p>
+    </div>
+
+</body>
+</html>
