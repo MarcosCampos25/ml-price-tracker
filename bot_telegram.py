@@ -88,10 +88,10 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Tarea programada diaria ---
 def principal_task():
-    track_all_products()
+    track_all_products(True)
 
 async def scheduler_loop():
-    schedule.every().day.at("20:38").do(principal_task)
+    schedule.every().day.at("10:00").do(principal_task)
     while True:
         schedule.run_pending()
         await asyncio.sleep(600)
