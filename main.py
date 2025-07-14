@@ -2,7 +2,8 @@ from classes.Database import Database
 from classes.MercadoLibre import MercadoLibre
 from classes.Alerts import Alert
 
-def track_all_products():
+def track_all_products(programmed_task=False):
+    template = "resume_products_pt.html" if programmed_task else "resume_products.html"
     al = Alert()
     db = Database('db/tracker.db')
     db.setup_database()
@@ -30,6 +31,7 @@ def track_all_products():
             })
         else:
             db.insert_product(product_details)
+    al.mail_alert_all_product(db, template)
     db.close()
     return True
 
