@@ -88,15 +88,9 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Tarea programada diaria ---
 def principal_task():
-    print("⏰ Ejecutando actualización diaria de productos...")
-    success = track_all_products()
-    if success:
-        print("✅ Actualización diaria completada correctamente.")
-    else:
-        print("⚠️ Error en la actualización diaria.")
+    track_all_products()
 
 async def scheduler_loop():
-    print("📅 TAREA PROGRAMADA: Actualización diaria a las 20:34 (hora local)")
     schedule.every().day.at("20:38").do(principal_task)
     while True:
         schedule.run_pending()
