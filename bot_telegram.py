@@ -94,7 +94,7 @@ async def scheduler_loop():
     schedule.every().day.at("20:38").do(principal_task)
     while True:
         schedule.run_pending()
-        await asyncio.sleep(1)
+        await asyncio.sleep(600)
 
 # --- Main ---
 async def main():
