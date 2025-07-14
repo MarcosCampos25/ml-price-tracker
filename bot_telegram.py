@@ -1,3 +1,5 @@
+import asyncio
+import schedule
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
@@ -11,7 +13,8 @@ ASK_NEW_URL, ASK_DELETE_URL = range(2)
 
 db = Database('db/tracker.db')
 
-# /start
+# --- Handlers de comandos ---
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "¡Hola! Soy el bot de PriceTracker 🛒\n"
@@ -19,7 +22,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Usá /help para ver los comandos disponibles."
     )
 
-# /help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📋 *Comandos disponibles:*\n"
@@ -31,25 +33,22 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# /newproduct
 async def newproduct(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📎 Enviá la URL del producto que querés agregar:")
     return ASK_NEW_URL
 
 async def recibir_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
-    success = scrap_and_insert_new_product(url)  # Llama a la función principal que maneja la lógica de agregar el producto
+    success = scrap_and_insert_new_product(url)
     if success:
         await update.message.reply_text(f"✅ Producto agregado con éxito:\n{url}")
     else:
         await update.message.reply_text("⚠️ No se pudo agregar el producto (¿ya está registrado?).")
     return ConversationHandler.END
 
-# /deleteproduct
 async def deleteproduct(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🗑 Enviá la URL del producto que querés eliminar:")
     return ASK_DELETE_URL
-
 
 async def recibir_url_eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
@@ -60,7 +59,6 @@ async def recibir_url_eliminar(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("❌ No se encontró el producto con esa URL.")
     return ConversationHandler.END
 
-# /productlist
 async def productlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     productos = db.fetch_all_products()
     if not productos:
@@ -69,16 +67,14 @@ async def productlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     msg = "📦 *Lista de productos trackeados:*\n\n"
     for p in productos:
-        prod = dict(p)  # Por si es sqlite3.Row
+        prod = dict(p)
         msg += (
             f"🔗 [{prod['title']}]({prod['url']})\n"
             f"💰 Precio actual: ${prod['current_price']:.2f}\n"
             f"🏷 Mejor precio: ${prod['best_price']:.2f}\n\n"
         )
-
     await update.message.reply_text(msg, parse_mode="Markdown")
 
-# /updateallproducts
 async def updateallproducts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     success = track_all_products()
     if success:
@@ -86,39 +82,61 @@ async def updateallproducts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⚠️ Ocurrió un error al actualizar los productos.")
 
-# /cancel
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Operación cancelada.")
     return ConversationHandler.END
 
-if __name__ == '__main__':
+# --- Tarea programada diaria ---
+def principal_task():
+    print("⏰ Ejecutando actualización diaria de productos...")
+    success = track_all_products()
+    if success:
+        print("✅ Actualización diaria completada correctamente.")
+    else:
+        print("⚠️ Error en la actualización diaria.")
+
+async def scheduler_loop():
+    print("📅 TAREA PROGRAMADA: Actualización diaria a las 20:34 (hora local)")
+    schedule.every().day.at("20:38").do(principal_task)
+    while True:
+        schedule.run_pending()
+        await asyncio.sleep(1)
+
+# --- Main ---
+async def main():
     import os
-
     TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # Configurar handlers
     conv_new = ConversationHandler(
         entry_points=[CommandHandler("newproduct", newproduct)],
-        states={
-            ASK_NEW_URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_url)],
-        },
-        fallbacks=[CommandHandler("cancel", cancelar)]
+        states={ASK_NEW_URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_url)]},
+        fallbacks=[CommandHandler("cancel", cancelar)],
     )
-
     conv_delete = ConversationHandler(
         entry_points=[CommandHandler("deleteproduct", deleteproduct)],
-        states={
-            ASK_DELETE_URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_url_eliminar)],
-        },
-        fallbacks=[CommandHandler("cancel", cancelar)]
+        states={ASK_DELETE_URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_url_eliminar)]},
+        fallbacks=[CommandHandler("cancel", cancelar)],
     )
 
-    # Handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("productlist", productlist))
+    app.add_handler(CommandHandler("updateallproducts", updateallproducts))
     app.add_handler(conv_new)
     app.add_handler(conv_delete)
 
-    app.run_polling()
+    # Inicializar y correr bot + scheduler en paralelo
+    await app.initialize()
+    await app.start()
+    await asyncio.gather(
+        app.updater.start_polling(),
+        scheduler_loop()
+    )
+    await app.stop()
+    await app.shutdown()
+
+# Ejecutar
+if __name__ == '__main__':
+    asyncio.run(main())
