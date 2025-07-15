@@ -12,6 +12,7 @@ from main import scrap_and_insert_new_product, track_all_products
 ASK_NEW_URL, ASK_DELETE_URL = range(2)
 
 db = Database()
+db.setup_database()
 
 # --- Handlers de comandos ---
 
@@ -134,7 +135,4 @@ async def main():
 
 # Ejecutar
 if __name__ == '__main__':
-    db = Database()
-    db.setup_database()
-    db.close()
     asyncio.run(main())
