@@ -1,9 +1,15 @@
-import sqlite3
+import psycopg2
+import os
 
 class Database:
-    def __init__(self, db_name):
-        self.connection = sqlite3.connect(db_name)
-        self.connection.row_factory = sqlite3.Row  # ⬅️ clave
+    def __init__(self, _=None):
+        self.connection = psycopg2.connect(
+            dbname=os.getenv("PGDATABASE"),
+            user=os.getenv("PGUSER"),
+            password=os.getenv("PGPASSWORD"),
+            host=os.getenv("PGHOST"),
+            port=os.getenv("PGPORT"),
+        )
         self.cursor = self.connection.cursor()
 
     def setup_database(self):
@@ -13,7 +19,7 @@ class Database:
             'current_price': 'REAL NOT NULL',
             'last_price': 'REAL NOT NULL',
             'best_price': 'REAL NOT NULL',
-            'last_revision': 'DATETIME NOT NULL',
+            'last_revision': 'TIMESTAMP NOT NULL',
             'img': 'TEXT'
         })
 
@@ -25,31 +31,36 @@ class Database:
     def insert_product(self, product):
         self.cursor.execute("""
             INSERT INTO PRODUCTS (url, title, current_price, last_price, best_price, last_revision, img)
-            VALUES (?, ?, ?, ?, ?, datetime('now'), ?)
+            VALUES (%s, %s, %s, %s, %s, NOW(), %s)
+            ON CONFLICT (url) DO NOTHING
         """, (
-            product['url'], product['title'], product['current_price'], product['current_price'], product['current_price'], product.get('img', None)
+            product['url'], product['title'], product['current_price'],
+            product['current_price'], product['current_price'], product.get('img', None)
         ))
         self.connection.commit()
-    
+
     def delete_product(self, url):
-        self.cursor.execute("DELETE FROM PRODUCTS WHERE url = ?", (url,))
+        self.cursor.execute("DELETE FROM PRODUCTS WHERE url = %s", (url,))
         self.connection.commit()
         return self.cursor.rowcount > 0
-    
+
     def update_product(self, product):
         self.cursor.execute("""
             UPDATE PRODUCTS
-            SET current_price = ?, last_price = ?, best_price = ?, last_revision = datetime('now')
-            WHERE url = ?
-        """, (product['current_price'], product['last_price'], product['best_price'], product['url']))
+            SET current_price = %s, last_price = %s, best_price = %s, last_revision = NOW()
+            WHERE url = %s
+        """, (
+            product['current_price'], product['last_price'],
+            product['best_price'], product['url']
+        ))
         self.connection.commit()
-    
+
     def fetch_all_products(self):
         self.cursor.execute("SELECT * FROM PRODUCTS ORDER BY title DESC")
         return self.cursor.fetchall()
 
     def fetch_product(self, url):
-        self.cursor.execute("SELECT * FROM PRODUCTS WHERE url = ?", (url,))
+        self.cursor.execute("SELECT * FROM PRODUCTS WHERE url = %s", (url,))
         return self.cursor.fetchone()
 
     def close(self):
