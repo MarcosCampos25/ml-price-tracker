@@ -91,7 +91,7 @@ def principal_task():
     track_all_products(True)
 
 async def scheduler_loop():
-    schedule.every().day.at("10:00").do(principal_task)
+    schedule.every().hour.do(principal_task)
     while True:
         schedule.run_pending()
         await asyncio.sleep(600)
