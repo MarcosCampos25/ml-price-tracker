@@ -134,4 +134,7 @@ async def main():
 
 # Ejecutar
 if __name__ == '__main__':
+    db = Database()
+    db.setup_database()
+    db.close()
     asyncio.run(main())
