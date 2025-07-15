@@ -5,7 +5,7 @@ from classes.Alerts import Alert
 def track_all_products(programmed_task=False):
     template = "resume_products_pt.html" if programmed_task else "resume_products.html"
     al = Alert()
-    db = Database('db/tracker.db')
+    db = Database()
     db.setup_database()
 
 
