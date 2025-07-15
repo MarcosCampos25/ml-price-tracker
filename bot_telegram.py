@@ -11,7 +11,7 @@ from main import scrap_and_insert_new_product, track_all_products
 # Estados para ConversationHandler
 ASK_NEW_URL, ASK_DELETE_URL = range(2)
 
-db = Database('db/tracker.db')
+db = Database()
 
 # --- Handlers de comandos ---
 
@@ -91,10 +91,11 @@ def principal_task():
     track_all_products(True)
 
 async def scheduler_loop():
-    schedule.every().hour.do(principal_task)
+    print("📅 TAREA PROGRAMADA: Actualización diaria a las 21 07 (hora local)")
+    schedule.every().day.at("21:09").do(principal_task)
     while True:
         schedule.run_pending()
-        await asyncio.sleep(600)
+        await asyncio.sleep(1)
 
 # --- Main ---
 async def main():
